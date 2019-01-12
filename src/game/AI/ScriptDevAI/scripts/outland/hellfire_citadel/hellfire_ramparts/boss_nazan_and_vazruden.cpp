@@ -282,14 +282,18 @@ struct boss_vazruden_heraldAI : public ScriptedAI
                         {
                             if (DoCastSpellIfCan(pEnemy, m_bIsRegularMode ? SPELL_FIREBALL : SPELL_FIREBALL_H, 0, pVazruden->GetObjectGuid()) == CAST_OK)
                                 m_uiFireballTimer = urand(2100, 7300);
-                        }
+						}
+
+						if (pVazruden->GetHealthPercent() < 15.0f) {
+							DoMoveToCombat();
+						}
                     }
                 }
                 else
                     m_uiFireballTimer -= uiDiff;
             }
-
-            if (m_creature->GetHealthPercent() < 20.0f)
+			
+            if (m_creature->GetHealthPercent() < 20.0f && m_creature->GetHealth() != 1)
                 DoMoveToCombat();
 
             return;
