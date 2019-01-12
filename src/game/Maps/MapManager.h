@@ -22,8 +22,10 @@
 #include "Common.h"
 #include "Platform/Define.h"
 #include "Policies/Singleton.h"
+#include "Map.h"
 #include "Maps/Map.h"
 #include "Grids/GridStates.h"
+#include "Maps/MapUpdater.h"
 
 class Transport;
 class BattleGround;
@@ -68,7 +70,7 @@ class MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::ClassLevelLockab
         // only const version for outer users
         void DeleteInstance(uint32 mapid, uint32 instanceId);
 
-        void Initialize(void);
+        void Initialize();
         void Update(uint32);
 
         void SetGridCleanUpDelay(uint32 t)
@@ -81,7 +83,7 @@ class MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::ClassLevelLockab
 
         void SetMapUpdateInterval(uint32 t)
         {
-            if (t > MIN_MAP_UPDATE_DELAY)
+            if (t < MIN_MAP_UPDATE_DELAY)
                 t = MIN_MAP_UPDATE_DELAY;
 
             i_timer.SetInterval(t);
@@ -145,6 +147,9 @@ class MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::ClassLevelLockab
         uint32 GetNumInstances();
         uint32 GetNumPlayersInInstances();
 
+		uint32 GetMapUpdateMinTime(uint32 mapId, uint32 instance = 0);
+		uint32 GetMapUpdateMaxTime(uint32 mapId, uint32 instance = 0);
+		uint32 GetMapUpdateAvgTime(uint32 mapId, uint32 instance = 0);
 
         // get list of all maps
         const MapMapType& Maps() const { return i_maps; }
@@ -178,11 +183,13 @@ class MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::ClassLevelLockab
         DungeonMap* CreateDungeonMap(uint32 id, uint32 InstanceId, Difficulty difficulty, DungeonPersistentState* save = nullptr);
         BattleGroundMap* CreateBattleGroundMap(uint32 id, uint32 InstanceId, BattleGround* bg);
 
+		std::mutex Lock;
         uint32 i_gridCleanUpDelay;
         MapMapType i_maps;
         IntervalTimer i_timer;
 
         uint32 i_MaxInstanceId;
+		MapUpdater m_updater;
 };
 
 template<typename Do>

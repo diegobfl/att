@@ -26,6 +26,7 @@
 #include "World/World.h"
 #include "Grids/CellImpl.h"
 #include "Globals/ObjectMgr.h"
+#include "Maps/MapWorkers.h"
 #include <future>
 
 #define CLASS_LOCK MaNGOS::ClassLevelLockable<MapManager, std::recursive_mutex>
@@ -55,6 +56,10 @@ MapManager::Initialize()
     InitStateMachine();
     InitMaxInstanceId();
     CreateContinents();
+
+    int num_threads = 4;//(sWorld.getConfig(CONFIG_UINT32_NUM_MAP_THREADS));
+    if (num_threads > 0)
+        m_updater.activate(num_threads);
 }
 
 void MapManager::InitStateMachine()
@@ -112,11 +117,12 @@ Map* MapManager::CreateMap(uint32 id, const WorldObject* obj)
 {
     Guard _guard(*this);
 
+    Map* m = nullptr;
+
     const MapEntry* entry = sMapStore.LookupEntry(id);
     if (!entry)
         return nullptr;
 
-    Map* m;
     if (entry->Instanceable())
     {
         MANGOS_ASSERT(obj && obj->GetTypeId() == TYPEID_PLAYER);
@@ -129,6 +135,7 @@ Map* MapManager::CreateMap(uint32 id, const WorldObject* obj)
         m = FindMap(id);
         if (m == nullptr)
         {
+			std::lock_guard<std::mutex> lock(Lock);
             m = new WorldMap(id, i_gridCleanUpDelay);
             // add map into container
             i_maps[MapID(id)] = m;
@@ -191,11 +198,19 @@ void MapManager::Update(uint32 diff)
     if (!i_timer.Passed())
         return;
 
-    for (auto& i_map : i_maps)
-        i_map.second->Update((uint32)i_timer.GetCurrent());
+    for (auto& map : i_maps)
+    {
+        if (m_updater.activated())
+            m_updater.schedule_update(new MapUpdateWorker(*map.second, (uint32)i_timer.GetCurrent(), m_updater));
+        else
+            map.second->Update((uint32)i_timer.GetCurrent());
+    }
 
-    for (Transport* m_Transport : m_Transports)
-        m_Transport->Update((uint32)i_timer.GetCurrent());
+    if (m_updater.activated())
+        m_updater.wait();
+
+    for (TransportSet::iterator iter = m_Transports.begin(); iter != m_Transports.end(); ++iter)
+        (*iter)->Update((uint32)i_timer.GetCurrent());
 
     // remove all maps which can be unloaded
     MapMapType::iterator iter = i_maps.begin();
@@ -251,6 +266,9 @@ void MapManager::UnloadAll()
         i_maps.erase(i_maps.begin());
     }
 
+    if (m_updater.activated())
+        m_updater.deactivate();
+
     TerrainManager::Instance().UnloadAll();
 }
 
@@ -268,6 +286,8 @@ void MapManager::InitMaxInstanceId()
 
 uint32 MapManager::GetNumInstances()
 {
+    std::lock_guard<std::mutex> lock(Lock);
+
     uint32 ret = 0;
     for (auto& i_map : i_maps)
     {
@@ -278,8 +298,30 @@ uint32 MapManager::GetNumInstances()
     return ret;
 }
 
+uint32 MapManager::GetMapUpdateMinTime(uint32 mapId, uint32 instance)
+{
+    std::lock_guard<std::mutex> lock(Lock);
+    //return i_maps[MapID(mapId, instance)]->GetUpdateTimeMin();
+    return 0;
+}
+
+uint32 MapManager::GetMapUpdateMaxTime(uint32 mapId, uint32 instance)
+{
+    std::lock_guard<std::mutex> lock(Lock);
+    //return i_maps[MapID(mapId, instance)]->GetUpdateTimeMax();
+    return 0;
+}
+
+uint32 MapManager::GetMapUpdateAvgTime(uint32 mapId, uint32 instance)
+{
+    std::lock_guard<std::mutex> lock(Lock);
+    //return i_maps[MapID(mapId, instance)]->GetUpdateTimeAvg();
+    return 0;
+}
+
 uint32 MapManager::GetNumPlayersInInstances()
 {
+	std::lock_guard<std::mutex> lock(Lock);
     uint32 ret = 0;
     for (auto& i_map : i_maps)
     {
@@ -296,7 +338,8 @@ Map* MapManager::CreateInstance(uint32 id, Player* player)
 {
     Map* map = nullptr;
     Map* pNewMap = nullptr;
-    uint32 NewInstanceId;                                    // instanceId of the resulting map
+    uint32 NewInstanceId = 0;                                    
+    // instanceId of the resulting map
     const MapEntry* entry = sMapStore.LookupEntry(id);
 
     if (entry->IsBattleGroundOrArena())
