@@ -1970,6 +1970,7 @@ class Player : public Unit
         /*********************************************************/
 
         bool isRested() const { return GetRestTime() >= 10 * IN_MILLISECONDS; }
+		bool isVIP();
         uint32 GetXPRestBonus(uint32 xp);
         uint32 GetRestTime() const { return m_restTime; }
         void SetRestTime(uint32 v) { m_restTime = v; }

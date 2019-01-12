@@ -7650,6 +7650,17 @@ void Player::SendInitWorldStates(uint32 zoneid, uint32 areaid) const
     GetSession()->SendPacket(data);
 }
 
+bool Player::isVIP() 
+{
+    uint32 vipGuid = (sWorld.getConfig(CONFIG_UINT32_VIP_ITEM));
+
+    if (vipGuid == 0) {
+        return false;
+    }
+
+    return HasItemOrGemWithIdEquipped(vipGuid, 1);
+}
+
 uint32 Player::GetXPRestBonus(uint32 xp)
 {
     uint32 rested_bonus = (uint32)GetRestBonus();           // xp for each rested bonus
@@ -12781,6 +12792,9 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
 
     // Used for client inform but rewarded only in case not max level
     uint32 xp = uint32(pQuest->XPValue(this) * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST));
+
+    if (isVIP())
+        xp = xp * (sWorld.getConfig(CONFIG_UINT32_VIP_RATE));
 
     if (getLevel() < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
         GiveXP(xp, nullptr);

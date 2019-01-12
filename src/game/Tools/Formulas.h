@@ -145,6 +145,10 @@ namespace MaNGOS
                     xp_gain *= 2;
             }
 
+            if (player->isVIP()) {
+                xp_gain = xp_gain * (sWorld.getConfig(CONFIG_UINT32_VIP_RATE));
+            }
+
             xp_gain *= target->GetCreatureInfo()->ExperienceMultiplier;
 
             return (uint32)(xp_gain * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL));
