@@ -284,9 +284,6 @@ struct boss_vazruden_heraldAI : public ScriptedAI
                                 m_uiFireballTimer = urand(2100, 7300);
                         }
 
-                        if (pVazruden->GetHealthPercent() < 15.0f) {
-                            DoMoveToCombat();
-                        }
                     }
                 }
                 else
