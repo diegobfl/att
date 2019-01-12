@@ -4592,8 +4592,11 @@ bool Spell::DoSummonPet(SpellEffectIndex eff_idx)
         spawnCreature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
         spawnCreature->SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_PLAYER_CONTROLLED_DEBUFF_LIMIT);
     }
-    else
+    else 
+    {
         spawnCreature->SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_CREATURE_DEBUFF_LIMIT);
+        const_cast<uint32&>(spawnCreature->GetCreatureInfo()->ExtraFlags) |= CREATURE_EXTRA_FLAG_NO_XP_AT_KILL;
+    }
 
     if (spawnCreature->getPetType() == GUARDIAN_PET)
         m_caster->AddGuardian(spawnCreature);
@@ -5010,8 +5013,11 @@ bool Spell::DoSummonGuardian(CreatureSummonPositions& list, SummonPropertiesEntr
             spawnCreature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
             spawnCreature->SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_PLAYER_CONTROLLED_DEBUFF_LIMIT);
         }
-        else
+        else 
+        {
             spawnCreature->SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_CREATURE_DEBUFF_LIMIT);
+            const_cast<uint32&>(spawnCreature->GetCreatureInfo()->ExtraFlags) |= CREATURE_EXTRA_FLAG_NO_XP_AT_KILL;
+        }
 
         if (m_caster->IsImmuneToNPC())
             spawnCreature->SetImmuneToNPC(true);
@@ -5026,7 +5032,7 @@ bool Spell::DoSummonGuardian(CreatureSummonPositions& list, SummonPropertiesEntr
             charmInfo->SetPetNumber(pet_number, false);
 
         spawnCreature->SetLoading(false);
-        m_caster->AddGuardian(spawnCreature);
+		m_caster->AddGuardian(spawnCreature);
     }
 
     return true;
@@ -5378,41 +5384,41 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
     {
         switch (m_caster->getClass())
         {
-            case CLASS_HUNTER:
+        case CLASS_HUNTER:
+        {
+            if (NewSummon->LoadPetFromDB((Player*)m_caster))
+                m_spellLog.AddLog(uint32(SPELL_EFFECT_SUMMON_PET), NewSummon->GetPackGUID());
+            return;
+        }
+        case CLASS_WARLOCK:
+        {
+            // Remove Demonic Sacrifice auras (known pet)
+            Unit::AuraList const& auraClassScripts = m_caster->GetAurasByType(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS);
+            for (Unit::AuraList::const_iterator itr = auraClassScripts.begin(); itr != auraClassScripts.end();)
             {
-                if (NewSummon->LoadPetFromDB((Player*)m_caster))
-                    m_spellLog.AddLog(uint32(SPELL_EFFECT_SUMMON_PET), NewSummon->GetPackGUID());
+                if ((*itr)->GetModifier()->m_miscvalue == 2228)
+                {
+                    m_caster->RemoveAurasDueToSpell((*itr)->GetId());
+                    itr = auraClassScripts.begin();
+                }
+                else
+                    ++itr;
+            }
+        }
+        default:
+        {
+            if (Pet* OldSummon = m_caster->GetPet())
+                OldSummon->Unsummon(PET_SAVE_NOT_IN_SLOT, m_caster);
+
+            // Load pet from db; if any to load
+            if (NewSummon->LoadPetFromDB((Player*)m_caster, petentry))
+            {
+                m_spellLog.AddLog(uint32(SPELL_EFFECT_SUMMON_PET), NewSummon->GetPackGUID());
                 return;
             }
-            case CLASS_WARLOCK:
-            {
-                // Remove Demonic Sacrifice auras (known pet)
-                Unit::AuraList const& auraClassScripts = m_caster->GetAurasByType(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS);
-                for (Unit::AuraList::const_iterator itr = auraClassScripts.begin(); itr != auraClassScripts.end();)
-                {
-                    if ((*itr)->GetModifier()->m_miscvalue == 2228)
-                    {
-                        m_caster->RemoveAurasDueToSpell((*itr)->GetId());
-                        itr = auraClassScripts.begin();
-                    }
-                    else
-                        ++itr;
-                }
-            }
-            default:
-            {
-                if (Pet* OldSummon = m_caster->GetPet())
-                    OldSummon->Unsummon(PET_SAVE_NOT_IN_SLOT, m_caster);
 
-                // Load pet from db; if any to load
-                if (NewSummon->LoadPetFromDB((Player*)m_caster, petentry))
-                {
-                    m_spellLog.AddLog(uint32(SPELL_EFFECT_SUMMON_PET), NewSummon->GetPackGUID());
-                    return;
-                }
-
-                NewSummon->setPetType(SUMMON_PET);
-            }
+            NewSummon->setPetType(SUMMON_PET);
+        }
         }
     }
     else
@@ -5451,8 +5457,10 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
     NewSummon->InitStatsForLevel(level);
     NewSummon->InitPetCreateSpells();
 
-    if (NewSummon->getPetType() == GUARDIAN_PET)
+    if (NewSummon->getPetType() == GUARDIAN_PET) {
+
         m_caster->AddGuardian(NewSummon);
+	}
     else
         m_caster->SetPet(NewSummon);
     DEBUG_LOG("New Pet has guid %u", NewSummon->GetGUIDLow());
@@ -5463,11 +5471,12 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
         NewSummon->SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_PLAYER_CONTROLLED_DEBUFF_LIMIT);
         NewSummon->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
     }
-    else
+    else 
     {
         NewSummon->SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_CREATURE_DEBUFF_LIMIT);
         NewSummon->SetFlag(UNIT_FIELD_FLAGS, cInfo->UnitFlags);
         NewSummon->SetUInt32Value(UNIT_NPC_FLAGS, cInfo->NpcFlags);
+		const_cast<uint32&>(NewSummon->GetCreatureInfo()->ExtraFlags) |= CREATURE_EXTRA_FLAG_NO_XP_AT_KILL;
     }
 
     if (m_caster->IsImmuneToNPC())
@@ -7696,6 +7705,8 @@ bool Spell::DoSummonTotem(CreatureSummonPositions& list, SpellEffectIndex eff_id
 
     if (m_caster->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED))
         pTotem->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
+    else 
+        const_cast<uint32&>(pTotem->GetCreatureInfo()->ExtraFlags) |= CREATURE_EXTRA_FLAG_NO_XP_AT_KILL;
 
     if (m_caster->IsImmuneToNPC())
         pTotem->SetImmuneToNPC(true);
