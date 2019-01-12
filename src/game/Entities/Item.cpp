@@ -1175,7 +1175,7 @@ void Item::SetLootState(ItemLootUpdateState state)
             assert(false);                                 // not used in state change calls
             return;
         case ITEM_LOOT_TEMPORARY:
-            assert(m_lootState == ITEM_LOOT_NONE);          // called only for not generated yet loot case
+            //assert(m_lootState == ITEM_LOOT_NONE);          // called only for not generated yet loot case
             m_lootState = ITEM_LOOT_TEMPORARY;
             break;
         case ITEM_LOOT_CHANGED:
