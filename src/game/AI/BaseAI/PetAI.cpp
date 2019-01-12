@@ -348,18 +348,21 @@ void PetAI::UpdateAI(const uint32 diff)
                     m_unit->SendCreateUpdateToPlayer((Player*)owner);
             }
 
-            switch (((Pet*)creature)->getPetType())
-            {
-            case HUNTER_PET:
-                if (victim->getVictim() == m_unit) {
-                    m_attackAngle = 0.0f;
+            if (pet) {
+                switch (pet->getPetType())
+                {
+                case HUNTER_PET:
+                    if (victim->getVictim() == m_unit) {
+                        m_attackAngle = 0.0f;
+                    }
+                    else {
+                        m_attackAngle = M_PI_F;
+                    }
+                default:
+                    break;
                 }
-                else {
-                    m_attackAngle = M_PI_F;
-                }
-            default:
-                break;
             }
+
 
 
             DoMeleeAttackIfReady();
