@@ -42,9 +42,9 @@ PetAI::PetAI(Creature* creature) : UnitAI(creature), m_creature(creature), inCom
 
     switch (((Pet*)creature)->getPetType())
     {
-        case HUNTER_PET:    //hunter pets attack from behind
+        /*case HUNTER_PET:    //hunter pets attack from behind
             m_attackAngle = M_PI_F;
-            break;
+            break;*/
         case MINI_PET:
             SetReactState(REACT_PASSIVE);
             break;
