@@ -282,17 +282,19 @@ struct boss_vazruden_heraldAI : public ScriptedAI
                         {
                             if (DoCastSpellIfCan(pEnemy, m_bIsRegularMode ? SPELL_FIREBALL : SPELL_FIREBALL_H, 0, pVazruden->GetObjectGuid()) == CAST_OK)
                                 m_uiFireballTimer = urand(2100, 7300);
-						}
+                        }
 
-						if (pVazruden->GetHealthPercent() < 15.0f) {
-							DoMoveToCombat();
-						}
+                        if (pVazruden->GetHealthPercent() < 15.0f) {
+                            DoMoveToCombat();
+                        }
                     }
                 }
                 else
                     m_uiFireballTimer -= uiDiff;
             }
-			
+
+            // Nazan Encounter was bugging once entering the instance because it spawns with one hp and increases until max health.
+            // Adding a check for 1 HP to avoid entering in combat.
             if (m_creature->GetHealthPercent() < 20.0f && m_creature->GetHealth() != 1)
                 DoMoveToCombat();
 
