@@ -807,6 +807,7 @@ void World::LoadConfigSettings(bool reload)
 
     setConfig(CONFIG_UINT32_VIP_ITEM, "VipItem", 0);
     setConfig(CONFIG_UINT32_VIP_RATE, "VipRate", 1);
+	setConfig(CONFIG_UINT32_NUM_MAP_THREADS, "NumberOfThreads", 1);
     setConfig(CONFIG_BOOL_VMAP_INDOOR_CHECK, "vmap.enableIndoorCheck", true);
     bool enableLOS = sConfig.GetBoolDefault("vmap.enableLOS", false);
     bool enableHeight = sConfig.GetBoolDefault("vmap.enableHeight", false);

@@ -50,14 +50,13 @@ MapManager::~MapManager()
     DeleteStateMachine();
 }
 
-void
-MapManager::Initialize()
+void MapManager::Initialize()
 {
     InitStateMachine();
     InitMaxInstanceId();
     CreateContinents();
 
-    int num_threads = 4;//(sWorld.getConfig(CONFIG_UINT32_NUM_MAP_THREADS));
+    int num_threads = (sWorld.getConfig(CONFIG_UINT32_NUM_MAP_THREADS));
     if (num_threads > 0)
         m_updater.activate(num_threads);
 }
